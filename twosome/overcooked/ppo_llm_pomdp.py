@@ -117,13 +117,17 @@ def parse_args():
 
 def make_env(env_id, seed, idx, capture_video, run_name, env_params):
     def thunk():
-
         env = gym.make(env_id, **env_params)
         env = MacEnvWrapper(env)
         if capture_video:
             if idx == 0:
                 env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
-        env.seed(seed)
+        # Try the new seeding approach first, fall back to old if needed
+        try:
+            env.reset(seed=seed)
+        except TypeError:
+            env.seed(seed)
+            env.reset()
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
         return env
@@ -403,3 +407,7 @@ if __name__ == "__main__":
     
     envs.close()
     writer.close()
+
+
+
+

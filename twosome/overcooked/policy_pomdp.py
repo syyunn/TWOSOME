@@ -8,7 +8,7 @@ from peft import (
     LoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
-    prepare_model_for_int8_training,
+    prepare_model_for_kbit_training,
     set_peft_model_state_dict,
 )
 from transformers import LlamaForCausalLM, LlamaTokenizer
@@ -91,7 +91,7 @@ class LLMAgent(nn.Module):
         if not self.load_8bit:
             model.half().to(self.device)
         else:
-            model = prepare_model_for_int8_training(model, use_gradient_checkpointing=True)
+            model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 
         return model
 
