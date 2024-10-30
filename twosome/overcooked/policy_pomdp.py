@@ -45,7 +45,8 @@ class LLMAgent(nn.Module):
         self.load_8bit = load_8bit
         # self.base_model = 'Neko-Institute-of-Science/LLaMA-7B-HF'
         # self.base_model = 'meta-llama/Llama-3.1-8B'
-        model_name = 'meta-llama/Llama-3.2-3B'
+        # model_name = 'meta-llama/Llama-3.2-3B'
+        model_name = '/home/gridsan/syun/models--meta-llama--Llama-3.2-3B'
         self.base_model = model_name
         self.lora_r  = 8
         self.lora_alpha = 16
@@ -63,11 +64,11 @@ class LLMAgent(nn.Module):
         else:
             self.device = "cpu"
 
-        try:
-            if torch.backends.mps.is_available():
-                self.device = "mps"
-        except:  # noqa: E722
-            pass
+        # try:
+        #     if torch.backends.mps.is_available():
+        #         self.device = "mps"
+        # except:  # noqa: E722
+        #     pass
 
         self.normalization_mode = normalization_mode
 
@@ -82,30 +83,45 @@ class LLMAgent(nn.Module):
         if load_path:
             self.load(load_path)
         else:
-            self.actor = self._init_actor().to(self.device)
-            self.critic = self._init_critic().to(self.device)
+            if self.device == "cuda":
+                self.actor = self._init_actor().to(self.device)
+                self.critic = self._init_critic().to(self.device)
+            else:
+                self.actor = self._init_actor()
+                self.critic = self._init_critic()
 
     def _init_llama(self):
+        if self.device == "mps":
+            torch_dtype = torch.float32
+        else:
+            torch_dtype = torch.float16
+
 
         # model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B")
         model = AutoModelForCausalLM.from_pretrained(
             self.base_model,
-            torch_dtype=torch.float16,
-            load_in_8bit=self.load_8bit,
+            # torch_dtype=torch.float16,
+            torch_dtype=torch_dtype,
+            # load_in_8bit=self.load_8bit,
             device_map="auto",
             cache_dir=os.path.join(root, 'weights/llama')
             #cache_dir='weights/llama'
         )
 
-        if not self.load_8bit:
-            # model.half().to(self.device)
-            pass
-        else:
-            model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+        # if not self.load_8bit:
+        #     # model.half().to(self.device)
+        #     pass
+        # else:
+        #     model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 
         return model
 
     def _init_actor(self, lora_weights = None):
+        if self.device == "mps":
+            torch_dtype = torch.float32
+        else:
+            torch_dtype = torch.float16
+
         if lora_weights is None:
             config = LoraConfig(
                 r=self.lora_r,
@@ -129,16 +145,17 @@ class LLMAgent(nn.Module):
             model = PeftModel.from_pretrained(
                 self.llama,
                 lora_weights,
-                torch_dtype=torch.float16,
+                # torch_dtype=torch.float16,
+                torch_dtype=torch_dtype,  # Use float32 for MPS devices
             )
 
-        if torch.__version__ >= "2" and sys.platform != "win32":
-            model = torch.compile(model)
+        # if torch.__version__ >= "2" and sys.platform != "win32":
+        #     model = torch.compile(model)
 
-        if not self.load_8bit:
-            model.half()
-        else:
-            model = prepare_model_for_int8_training(model, use_gradient_checkpointing=True)
+        # if not self.load_8bit:
+        #     model.half()
+        # else:
+        #     model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
 
         return model
 
@@ -229,7 +246,10 @@ class LLMAgent(nn.Module):
 
         action_logits = action_logits.reshape(-1, action_num).float()
 
+        action_logits = torch.nan_to_num(action_logits, nan=0)
+
         probs = Categorical(logits=action_logits)
+
         if action is None:
             action = probs.sample()
 
