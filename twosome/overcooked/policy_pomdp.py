@@ -23,6 +23,9 @@ from critic import Critic
 from torch.distributions.categorical import Categorical
 import copy 
 
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+
 root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root)
 
@@ -66,7 +69,8 @@ class LLMAgent(nn.Module):
 
         self.normalization_mode = normalization_mode
 
-        self.tokenizer = LlamaTokenizer.from_pretrained(self.base_model)
+        self.tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B")
+        # self.tokenizer = LlamaTokenizer.from_pretrained(self.base_model)
         self.tokenizer.pad_token_id = (
             0  # unk. we want this to be different from the eos token
         )
@@ -80,7 +84,9 @@ class LLMAgent(nn.Module):
             self.critic = self._init_critic().to(self.device)
 
     def _init_llama(self):
-        model = LlamaForCausalLM.from_pretrained(
+
+        # model = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B")
+        model = AutoModelForCausalLM.from_pretrained(
             self.base_model,
             torch_dtype=torch.float16,
             load_in_8bit=self.load_8bit,
