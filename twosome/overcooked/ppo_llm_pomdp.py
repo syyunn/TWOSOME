@@ -122,12 +122,7 @@ def make_env(env_id, seed, idx, capture_video, run_name, env_params):
         if capture_video:
             if idx == 0:
                 env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
-        # Try the new seeding approach first, fall back to old if needed
-        try:
-            env.reset(seed=seed)
-        except TypeError:
-            env.seed(seed)
-            env.reset()
+        # env.seed(seed)
         env.action_space.seed(seed)
         env.observation_space.seed(seed)
         return env
@@ -146,7 +141,6 @@ if __name__ == "__main__":
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{time_str}"
     if args.track:
         import wandb
-
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
