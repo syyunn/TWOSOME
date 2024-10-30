@@ -44,7 +44,9 @@ class LLMAgent(nn.Module):
 
         self.load_8bit = load_8bit
         # self.base_model = 'Neko-Institute-of-Science/LLaMA-7B-HF'
-        self.base_model = 'meta-llama/Llama-3.1-8B'
+        # self.base_model = 'meta-llama/Llama-3.1-8B'
+        model_name = 'meta-llama/Llama-3.2-3B'
+        self.base_model = model_name
         self.lora_r  = 8
         self.lora_alpha = 16
         self.lora_dropout = 0
@@ -69,7 +71,7 @@ class LLMAgent(nn.Module):
 
         self.normalization_mode = normalization_mode
 
-        self.tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B")
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # self.tokenizer = LlamaTokenizer.from_pretrained(self.base_model)
         self.tokenizer.pad_token_id = (
             0  # unk. we want this to be different from the eos token
